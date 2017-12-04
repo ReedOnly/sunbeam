@@ -124,6 +124,11 @@ class Group(object):
         return [w for w in self._schedule.wells if w.name in names]
 
     @property
+    def vfp_table(self):
+        vfp_table = self._vfp_table(self.timestep)
+        return vfp_table
+
+    @property
     def parent(self):
         par = self._schedule._group_tree(self.timestep)._parent(self.name)
         if self.name == 'FIELD':
