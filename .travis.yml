@@ -1,16 +1,15 @@
-language: cpp
+language: python
 dist: trusty
-sudo: false
 
 compiler:
   - gcc
 
 os:
   - linux
+  - osx
 
 env:
   global:
-    - PYENV_VERSION=2.7
     - INSTALL_ROOT=$HOME/install
 
 addons:
@@ -20,12 +19,45 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - libboost1.55-all-dev
-      - gcc-4.8
-      - g++-4.8
       - liblapack-dev
 
+sudo: required
+
+python:
+  - 2.7
+  - 3.6
+
+matrix:
+    fast_finish: true
+    exclude:
+        - os: osx
+    allow_failures:
+        - os: osx
+    include:
+        - os: osx
+          osx_image: xcode8.3
+          language: generic
+          python: 2.7
+          env: MATRIX_EVAL="CC=gcc-5.0 && CXX=g++-5.0"
+
+        - os: osx
+          language: generic
+          python: 3.6
+          env: TOXENV=py36
+
+
+before_install:
+#    - eval "${MATRIX_EVAL}"
 
 install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc5;
+        brew link --overwrite gcc@5;
+        export CC=gcc-5 && export CXX=g++-5; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then echo $CC && echo $CXX; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install boost155;
+         export CPATH=/usr/local/opt/boost@1.55/include;
+         export LIBRARY_PATH=/usr/local/opt/boost@1.55/lib;
+         export LD_LIBRARY_PATH=/usr/local/opt/boost@1.55/lib; fi
   - pushd ..
   - git clone https://github.com/Statoil/libecl.git
   - git clone https://github.com/OPM/opm-parser.git
@@ -37,18 +69,25 @@ install:
   - mkdir opm-parser/build
   - pushd opm-parser/build
   - git checkout release/2017.10/final
-  - cmake -DCMAKE_PREFIX_PATH=$INSTALL_ROOT -DCMAKE_INSTALL_PREFIX=$INSTALL_ROOT -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=ON ..
+  - cmake .. -DCMAKE_PREFIX_PATH=$INSTALL_ROOT
+             -DCMAKE_INSTALL_PREFIX=$INSTALL_ROOT
+             -DBUILD_TESTING=OFF
+             -DBUILD_SHARED_LIBS=ON
+             -DBOOST_ROOT=/usr/local/opt/boost@1.55/lib
+             -DBoost_INCLUDE_DIR=/usr/local/opt/boost@1.55/include
   - make install
   - popd
   - popd
-  - pip install --user -r requirements.txt
+  - pip install -r requirements.txt
 
 
 script:
   - mkdir build
   - pushd build
-  - cmake -DCMAKE_PREFIX_PATH=$INSTALL_ROOT -DUSE_RPATH=ON -DCMAKE_INSTALL_PREFIX=$INSTALL_ROOT ..
+  - cmake .. -DCMAKE_PREFIX_PATH=$INSTALL_ROOT
+             -DUSE_RPATH=ON
+             -DCMAKE_INSTALL_PREFIX=$INSTALL_ROOT
+             -DPYTHON_EXECUTABLE=`which python`
   - make install
-  - export PYTHONPATH=$PYTHONPATH:$INSTALL_ROOT/lib/python${PYENV_VERSION}/site-packages
   - ctest --output-on-failure
   - popd
