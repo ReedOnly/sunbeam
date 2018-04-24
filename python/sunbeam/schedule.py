@@ -19,7 +19,7 @@ class Schedule(object):
         return {grp.name: grp for grp in self.groups(timestep)}
 
     def groups(self, timestep=0):
-        return [Group(x, self, timestep) for x in self._groups if x.name != 'FIELD']
+        return [Group(x, self, timestep) for x in self._groups]
 
     def __getitem__(self,well):
          return Well(self._getwell(well))
